@@ -3,6 +3,8 @@ from arcpy import env
 import re
 import csv
 
+#first commit of python file 20160603
+
 #0 Pre-Process
 
 #Get input parameters
