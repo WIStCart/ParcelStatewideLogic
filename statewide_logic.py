@@ -8,8 +8,28 @@ import csv
 #0 Pre-Process
 
 #Get input parameters
-#Create copy of feature class in memory?
-#Add new fields for processing (dbls)
+in_fc = arcpy.GetParameterAsText(1)
+outDir = arcpy.GetParameterAsText(2)
+outName = arcpy.GetParameterAsText(3)
+
+#Create copy of feature class in memory
+arcpy.AddMessage("WRITING TO MEMORY")
+output_fc_temp = in_fc + "_WORKING"
+arcpy.Delete_management("in_memory")
+arcpy.FeatureClassToFeatureClass_conversion(in_fc,"in_memory",output_fc_temp)
+
+#Add double fields for processing
+arcpy.AddMessage("ADDING DOUBLE FIELDS")
+arcpy.AddField_management(output_fc_temp,"CNTASSDVALUE_DBL", "DOUBLE")
+arcpy.AddField_management(output_fc_temp,"LNDVALUE_DBL", "DOUBLE")
+arcpy.AddField_management(output_fc_temp,"IMPVALUE_DBL", "DOUBLE")
+arcpy.AddField_management(output_fc_temp,"FORESTVALUE_DBL", "DOUBLE")
+arcpy.AddField_management(output_fc_temp,"ESTFMKVALUE_DBL", "DOUBLE")
+arcpy.AddField_management(output_fc_temp,"NETPRPTA_DBL", "DOUBLE")
+arcpy.AddField_management(output_fc_temp,"GRSPRPTA_DBL", "DOUBLE")
+arcpy.AddField_management(output_fc_temp,"ASSDACRES_DBL", "DOUBLE")
+arcpy.AddField_management(output_fc_temp,"DEEDACRES_DBL", "DOUBLE")
+arcpy.AddField_management(output_fc_temp,"GISACRES_DBL", "DOUBLE")
 
 #Parse SchoolDist csv to create two lists
 reader = csv.reader(open('school_district_codes.csv', 'r'))
@@ -28,8 +48,15 @@ for row in reader:
 #State ID
 
 #SchoolDist
-#If num is null and name is not, loop through names to find matching num
-#Else If name is null and num is not, loop through nums to find matching name 
+def processSchoolDist(row,cursor,nameNoDict,noNameDict):
+	schoolDistName = row.getValue("SCHOOLDIST")
+	schoolDistNo = row.getValue("SCHOOLDISTNO")
+
+	if schoolDistNo is None:
+		for key, value in d.iteritems():
+	else if schoolDistName is None:
+
+
 
 #Numeric Value Cast
 #If field value in sci notation, run a convert function (might be challenging)
@@ -42,7 +69,12 @@ for row in reader:
 #If no match is found, write unusual aux class to a csv or text file with the parcel's stateID
 
 #EstFmkVal (save until end)
-#
+
+
+updateCursor = arcpy.UpdateCursor(output_fc_temp)
+for row in updateCursor:
+	processSchoolDist(row,updateCursor,schoolDist_nameNo_dict,schoolDist_noName_dict)
+
 
 
 #2 Column operations
@@ -60,4 +92,3 @@ for row in reader:
 #Field map 
 #Run a merge into the template schema
 #Clear workspace
-
