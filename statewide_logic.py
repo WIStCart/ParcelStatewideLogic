@@ -40,7 +40,6 @@ for row in reader:
    schoolDist_noName_dict[k] = v
    schoolDist_nameNo_dict[v] = k
 
-
 #1 Row operations
 
 #Clean Case and Trim (plus carriage returns)
@@ -60,9 +59,15 @@ def processSchoolDist(row,cursor,nameNoDict,noNameDict):
 	schoolDistNo = row.getValue("SCHOOLDISTNO")
 
 	if schoolDistNo is None:
-		for key, value in d.iteritems():
+		for key, value in nameNoDict.iteritems():
+			if key in schoolDistName:
+				row.setValue("SCHOOLDISTNO", value)
+		cursor.updateRow(row)
 	else if schoolDistName is None:
-
+		for key, value in noNameDict.iteritems():
+			if key in schoolDistNo:
+				row.setValue("SCHOOLDIST", value)
+		cursor.updateRow(row)
 
 
 #Numeric Value Cast
