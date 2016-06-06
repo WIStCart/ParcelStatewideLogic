@@ -46,6 +46,13 @@ for row in reader:
 #Clean Case and Trim (plus carriage returns)
 
 #State ID
+def calcStateid(row,cursor):
+	if row.getValue("PARCELID") == None:
+	    row.setValue("STATEID", row.getValue("PARCELFIPS"))
+	else:
+		calculated = row.getValue("PARCELFIPS") + row.getValue("PARCELID")
+		row.setValue("STATEID", calculated)
+	cursor.updateRow(row)
 
 #SchoolDist
 def processSchoolDist(row,cursor,nameNoDict,noNameDict):
@@ -73,7 +80,9 @@ def processSchoolDist(row,cursor,nameNoDict,noNameDict):
 
 updateCursor = arcpy.UpdateCursor(output_fc_temp)
 for row in updateCursor:
+	calcStateid(row, updateCursor)
 	processSchoolDist(row,updateCursor,schoolDist_nameNo_dict,schoolDist_noName_dict)
+	
 
 
 
