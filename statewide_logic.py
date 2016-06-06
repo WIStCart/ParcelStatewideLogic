@@ -3,8 +3,6 @@ from arcpy import env
 import re
 import csv
 
-#first commit of python file 20160603
-
 #0 Pre-Process
 
 #Get input parameters
@@ -12,6 +10,12 @@ in_fc = arcpy.GetParameterAsText(1)
 outDir = arcpy.GetParameterAsText(2)
 outName = arcpy.GetParameterAsText(3)
 template_fc = arcpy.GetParameterAsText(4)
+
+#Initialize Variables
+rowCount = 0
+logEveryN = 100000
+double_field_list = ["CNTASSDVALUE_DBL","LNDVALUE_DBL","IMPVALUE_DBL","FORESTVALUE_DBL","ESTFMKVALUE_DBL",
+	"NETPRPTA_DBL","GRSPRPTA_DBL","ASSDACRES_DBL","DEEDACRES_DBL","GISACRES_DBL"]
 
 #Create copy of feature class in memory
 arcpy.AddMessage("WRITING TO MEMORY")
@@ -73,7 +77,7 @@ def processSchoolDist(row,cursor,nameNoDict,noNameDict):
 
 #Numeric Value Cast
 def numValCast(row,cursor, field_list):
-	regexp = re.compile(r"[^0-9.]")
+	regexp = re.compile("[^0-9.]")
 	for field in field_list:
 		if "e" in row.getValue(field) or "E" in row.getValue(field):
 			row.setValue(field + "_DBL", float(row.getValue(field)))
@@ -89,17 +93,18 @@ def numValCast(row,cursor, field_list):
 
 #EstFmkVal (save until end)
 
-
+arcpy.AddMessage("PROCESSING ROWS")
 updateCursor = arcpy.UpdateCursor(output_fc_temp)
-double_field_list = ["CNTASSDVALUE_DBL","LNDVALUE_DBL","IMPVALUE_DBL","FORESTVALUE_DBL","ESTFMKVALUE_DBL",
-	"NETPRPTA_DBL","GRSPRPTA_DBL","ASSDACRES_DBL","DEEDACRES_DBL","GISACRES_DBL"]
-
 for row in updateCursor:
+	rowCount += 1
 	calcStateid(row, updateCursor)
 	processSchoolDist(row,updateCursor,schoolDist_nameNo_dict,schoolDist_noName_dict)
 	numValCast(row, updateCursor,double_field_list)
-	
 
+
+	if (rowCount % logEveryN) == 0:
+        arcpy.AddMessage("PROCESSED "+str(rowCount)+" RECORDS")
+del(updateCursor)	
 
 
 #2 Column operations
