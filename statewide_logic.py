@@ -111,6 +111,15 @@ del(updateCursor)
 
 #Run summaries on certain fields
 
+#I'm not sure if this will work.  I tried to use a list of fields as opposed to 
+#hard coding the arcpy.Frequency... for each attribute field
+def createSummarytables(in_fc,outDir,outName):
+	fieldList = ["PREFIX","STREETNAME","STREETTYPE","SUFFIX"]
+	for i in fieldList:
+		arcpy.Frequency_analysis(in_fc,outDir +"/"+outName+i+"_Summary",i)
+		
+createSummarytables(in_fc,outDir,outName)
+
 <<<<<<< HEAD
 
 ======
