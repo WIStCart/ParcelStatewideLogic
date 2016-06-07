@@ -6,10 +6,10 @@ import csv
 #0 Pre-Process
 
 #Get input parameters
-in_fc = arcpy.GetParameterAsText(1)
-outDir = arcpy.GetParameterAsText(2)
-outName = arcpy.GetParameterAsText(3)
-template_fc = arcpy.GetParameterAsText(4)
+in_fc = arcpy.GetParameterAsText(0)
+outDir = arcpy.GetParameterAsText(1)
+outName = arcpy.GetParameterAsText(2)
+template_fc = arcpy.GetParameterAsText(3)
 
 #Initialize Variables
 rowCount = 0
@@ -46,6 +46,12 @@ for row in reader:
    schoolDist_noName_dict[k] = v
    schoolDist_nameNo_dict[v] = k
 
+#Create a table for the unusual AUXCLASS
+arcpy.AddMessage("CREATING AUXCLASS TABLE")
+arcpy.CreateTable_management(outDir,"unusualAuxClassTable")
+arcpy.AddField_management("unusualAuxClassTable","STATEID", "TEXT", "", "", 100)
+arcpy.AddField_management("unusualAuxClassTable","UNAUXCLASS", "TEXT", "", "", 150)
+
 #1 Row operations
 
 #Clean Case and Trim (plus carriage returns)
@@ -76,7 +82,7 @@ def processSchoolDist(row,cursor,nameNoDict,noNameDict):
 		cursor.updateRow(row)
 
 #Numeric Value Cast
-def numValCast(row,cursor, field_list):
+def numValCast(row,cursor,field_list):
 	regexp = re.compile("[^0-9.]")
 	for field in field_list:
 		if "e" in row.getValue(field) or "E" in row.getValue(field):
@@ -86,26 +92,47 @@ def numValCast(row,cursor, field_list):
 		else:
 			row.setValue(field + "_DBL", float(row.getValue(field)))
 
-#Unusual AUXCLASS: Returns 1 if an unusual AUXCLASS is found, else 0 (for a running tally)
-#Split field based on comma
-#compare to accepted domains
-#If no match is found, write unusual aux class to a csv or text file with the parcel's stateID
+#Unusual AUXCLASS: 
+def unusualAuxClass(row,cursor):
+	auxClassDef = ["W1","W2","W3","W4","W5","W6","W7","W8","X1","X2","X3","X4"]
+	auxClass = row.getValue("AUXCLASS")
+	auxClass.replace(" ","")
+	auxClassList = auxClass.split(",")
+	unusualAuxClass = []
+	for aClass in auxClassList:
+        if not any(aClass in s for s in auxClassDef):
+        	unusualAuxClass.append(aClass)
+    if unusualAuxClass.len > 0:    	
+    	return ",".join(unusualAuxClass)
+    else:
+    	return None
 
 #EstFmkVal (save until end)
 
 arcpy.AddMessage("PROCESSING ROWS")
 updateCursor = arcpy.UpdateCursor(output_fc_temp)
+insertCursor = arcpy.InsertCursor("unusualAuxClassTable")
 for row in updateCursor:
 	rowCount += 1
 	calcStateid(row, updateCursor)
 	processSchoolDist(row,updateCursor,schoolDist_nameNo_dict,schoolDist_noName_dict)
 	numValCast(row, updateCursor,double_field_list)
 
+	#Unusual AUXCLASS
+	if row.getValue("AUXCLASS") is not None:
+		auxClass = unusualAuxClass(row,updateCursor)
+		if auxClass is not None:
+			inRow = insertCursor.newRow()
+    		inRow.setValue("STATEID",row.getValue("STATEID"))
+    		inRow.setValue("UNAUXCLASS",auxClass)
+    		insertCursor.insertRow(inRow)
+
 
 	if (rowCount % logEveryN) == 0:
         arcpy.AddMessage("PROCESSED "+str(rowCount)+" RECORDS")
-del(updateCursor)	
-
+del(updateCursor)
+del(inRow)
+del(insertCursor)	
 
 #2 Column operations
 
