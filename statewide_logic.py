@@ -20,7 +20,8 @@ double_field_list = ["CNTASSDVALUE_DBL","LNDVALUE_DBL","IMPVALUE_DBL","FORESTVAL
 arcpy.AddMessage("WRITING TO MEMORY")
 output_fc_temp = in_fc + "_WORKING"
 arcpy.Delete_management("in_memory")
-arcpy.FeatureClassToFeatureClass_conversion(in_fc,"in_memory",output_fc_temp)
+dynamic_workspace = "in_memory"
+arcpy.FeatureClassToFeatureClass_conversion(in_fc,dynamic_workspace,output_fc_temp)
 
 #Add double fields for processing
 arcpy.AddMessage("ADDING FIELDS")
@@ -74,7 +75,7 @@ def processSchoolDist(row,cursor,nameNoDict,noNameDict):
 			if key in schoolDistName:
 				row.setValue("SCHOOLDISTNO", value)
 		cursor.updateRow(row)
-	else if schoolDistName is None:
+	elif schoolDistName is None:
 		for key, value in noNameDict.iteritems():
 			if key in schoolDistNo:
 				row.setValue("SCHOOLDIST", value)
@@ -109,12 +110,12 @@ def unusualAuxClass(row,cursor):
 	auxClassList = auxClass.split(",")
 	unusualAuxClass = []
 	for aClass in auxClassList:
-        if not any(aClass in s for s in auxClassDef):
-        	unusualAuxClass.append(aClass)
-    if unusualAuxClass.len > 0:    	
-    	return ",".join(unusualAuxClass)
-    else:
-    	return None
+		if not any(aClass in s for s in auxClassDef):
+			unusualAuxClass.append(aClass)
+	if unusualAuxClass.len > 0:
+		return ",".join(unusualAuxClass)
+	else:
+		return None
 
 arcpy.AddMessage("PROCESSING ROWS")
 updateCursor = arcpy.UpdateCursor(output_fc_temp)
@@ -137,7 +138,7 @@ for row in updateCursor:
 
 
 	if (rowCount % logEveryN) == 0:
-        arcpy.AddMessage("PROCESSED "+str(rowCount)+" RECORDS")
+		arcpy.AddMessage("PROCESSED "+str(rowCount)+" RECORDS")
 del(updateCursor)
 del(inRow)
 del(insertCursor)	
