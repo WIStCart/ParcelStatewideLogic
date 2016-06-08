@@ -137,20 +137,45 @@ del(insertCursor)
 #2 Column operations
 
 #Run summaries on certain fields
-
-#I'm not sure if this will work.  I tried to use a list of fields as opposed to 
-#hard coding the arcpy.Frequency... for each attribute field
-def createSummarytables(in_fc,outDir,outName):
+def createSummarytables(output_fc_temp,outDir,outName):
 	fieldList = ["PREFIX","STREETNAME","STREETTYPE","SUFFIX"]
 	for i in fieldList:
-		arcpy.Frequency_analysis(in_fc,outDir +"/"+outName+i+"_Summary",i)
+		arcpy.Frequency_analysis(output_fc_temp,outDir +"/"+outName+i+"_Summary",i)
 		
-createSummarytables(in_fc,outDir,outName)
+#Case and trim		
+def cleanCaseTrim(field,nullList,output_fc_temp):
+	query = '("' + field + '" IS NOT ' + "" + "NULL" + ')'
+	cursor = arcpy.UpdateCursor(output_fc_temp, query)
+	
+	#Loop through each row in a given field
+	for row in cursor:
+		#Strip whitespace and uppercase alpha characters
+		row.setValue(field, (row.getValue(field).strip().upper().strip('\r')))
+		cursor.updateRow(row)
+		#Check for null values
+		count = 0
+		found = False
+		while (found == False) and (count < len(nullList)):
+			if row.getValue(field) == nullList[count]:
+				row.setValue(field, None)
+				cursor.updateRow(row)
+				found = True
+			else:
+				count += 1
+					
 
-<<<<<<< HEAD
+createSummarytables(output_fc_temp,outDir,outName)
 
-======
->>>>>>> origin/master
+#null array 
+nullArray = ["<Null>", "<NULL>", "NULL", ""]
+
+#Get fields in feature class and loop through them
+fieldList = arcpy.ListFields(output_fc_temp)
+for field in fieldList:
+    if field.name != "OBJECTID" and field.name != "SHAPE" and field.name != "SHAPE_LENGTH" and field.name != "SHAPE_AREA": 
+        if field.type == "String":
+            cleanCaseTrim(field.name,nullArray,output_fc_temp);
+
 #3 Misc operations (could be in separate script)
 
 #ROW/Hydro Standardization
