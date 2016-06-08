@@ -9,7 +9,6 @@ import csv
 in_fc = arcpy.GetParameterAsText(0)
 outDir = arcpy.GetParameterAsText(1)
 outName = arcpy.GetParameterAsText(2)
-template_fc = arcpy.GetParameterAsText(3)
 
 #Initialize Variables
 rowCount = 0
@@ -81,13 +80,23 @@ def processSchoolDist(row,cursor,nameNoDict,noNameDict):
 				row.setValue("SCHOOLDIST", value)
 		cursor.updateRow(row)
 
+#Calculate Improved
+def calcImproved(row,cursor):
+	if row.getValue("IMPVALUE") is None:
+		row.setValue("IMPROVED", None)
+	elif row.getValue("IMPVALUE") > 0:
+		row.setValue("IMPROVED", "YES")
+	else:
+		row.setValue("IMPROVED", "NO")
+	cursor.updateRow(row)
+
 #Numeric Value Cast
 def numValCast(row,cursor,field_list):
 	regexp = re.compile("[^0-9.]")
 	for field in field_list:
 		if "e" in row.getValue(field) or "E" in row.getValue(field):
 			row.setValue(field + "_DBL", float(row.getValue(field)))
-		else if regexp.search(word) is not None:
+		elif regexp.search(word) is not None:
 			row.setValue("NUM_CAST_FLAG",field)
 		else:
 			row.setValue(field + "_DBL", float(row.getValue(field)))
@@ -107,8 +116,6 @@ def unusualAuxClass(row,cursor):
     else:
     	return None
 
-#EstFmkVal (save until end)
-
 arcpy.AddMessage("PROCESSING ROWS")
 updateCursor = arcpy.UpdateCursor(output_fc_temp)
 insertCursor = arcpy.InsertCursor("unusualAuxClassTable")
@@ -116,6 +123,7 @@ for row in updateCursor:
 	rowCount += 1
 	calcStateid(row, updateCursor)
 	processSchoolDist(row,updateCursor,schoolDist_nameNo_dict,schoolDist_noName_dict)
+	calcImproved(row, updateCursor)
 	numValCast(row, updateCursor,double_field_list)
 
 	#Unusual AUXCLASS
@@ -142,6 +150,7 @@ def createSummarytables(output_fc_temp,outDir,outName):
 	for i in fieldList:
 		arcpy.Frequency_analysis(output_fc_temp,outDir +"/"+outName+i+"_Summary",i)
 		
+<<<<<<< HEAD
 #Case and trim		
 def cleanCaseTrim(field,nullList,output_fc_temp):
 	query = '("' + field + '" IS NOT ' + "" + "NULL" + ')'
@@ -149,7 +158,7 @@ def cleanCaseTrim(field,nullList,output_fc_temp):
 	
 	#Loop through each row in a given field
 	for row in cursor:
-		#Strip whitespace and uppercase alpha characters
+		#Strip whitespace, uppercase alpha characters, remove carriage returns
 		row.setValue(field, (row.getValue(field).strip().upper().strip('\r')))
 		cursor.updateRow(row)
 		#Check for null values
@@ -186,3 +195,10 @@ for field in fieldList:
 #Field map 
 #Run a merge into the template schema
 #Clear workspace
+=======
+createSummarytables(in_fc,outDir,outName)
+
+#3 Post-Process
+#Return a feature class
+arcpy.FeatureClassToFeatureClass_conversion(output_fc_temp, out_dir, outName)
+>>>>>>> origin/master
