@@ -5,7 +5,7 @@ import csv
 import os
 
 #0 Pre-Process
-# cs test comment
+
 #Get input parameters
 in_fc = arcpy.GetParameterAsText(0)
 outDir = arcpy.GetParameterAsText(1)
@@ -123,26 +123,28 @@ def unusualAuxClass(row,cursor):
 	else:
 		return None
 
-arcpy.AddMessage("PROCESSING ROWS")
-updateCursor = arcpy.UpdateCursor(output_fc_temp)
-
-for row in updateCursor:
-	rowCount += 1
-	#calcStateid(row, updateCursor)
-	#processSchoolDist(row,updateCursor,schoolDist_nameNo_dict,schoolDist_noName_dict)
-	#calcImproved(row, updateCursor)
-	#numValCast(row, updateCursor,double_field_list)
-	stateid = row.getValue("STATEID")
-	#Unusual AUXCLASS
+def cantThinkOfName(row,cursor,auxClassTable):		
 	if row.getValue("AUXCLASS") is not None:
 		auxClass = unusualAuxClass(row,updateCursor)
 		if auxClass is not None:
 			insertCursor = arcpy.InsertCursor(auxClassTable)
 			inRow = insertCursor.newRow()
-			inRow.setValue("STATEID","stateid")
-    		inRow.setValue("UNAUXCLASS",auxClass)
-    		insertCursor.insertRow(inRow)
-    		del(insertCursor)
+			inRow.setValue("STATEID",row.getValue("STATEID"))
+			inRow.setValue("UNAUXCLASS",auxClass)
+			insertCursor.insertRow(inRow)
+			del(insertCursor)
+
+arcpy.AddMessage("PROCESSING ROWS")
+updateCursor = arcpy.UpdateCursor(output_fc_temp)
+
+for row in updateCursor:
+	rowCount += 1
+	calcStateid(row, updateCursor)
+	processSchoolDist(row,updateCursor,schoolDist_nameNo_dict,schoolDist_noName_dict)
+	calcImproved(row, updateCursor)
+	numValCast(row, updateCursor,double_field_list)
+	#Unusual AUXCLASS
+	cantThinkOfName(row,updateCursor,auxClassTable)
 	if (rowCount % logEveryN) == 0:
 		arcpy.AddMessage("PROCESSED "+str(rowCount)+" RECORDS")
 del(updateCursor)
@@ -192,8 +194,8 @@ for field in fieldList:
 #Field map 
 #Run a merge into the template schema
 #Clear workspace
-#createSummarytables(in_fc,outDir,outName)
+createSummarytables(in_fc,outDir,outName)
 
 #3 Post-Process
 #Return a feature class
-#arcpy.FeatureClassToFeatureClass_conversion(output_fc_temp, outDir, outName)
+arcpy.FeatureClassToFeatureClass_conversion(output_fc_temp, outDir, outName)
