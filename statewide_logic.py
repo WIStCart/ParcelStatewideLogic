@@ -60,9 +60,7 @@ arcpy.AddField_management(auxClassTable,"UNAUXCLASS", "TEXT", "", "", 150)
 
 #State ID
 def calcStateid(row,cursor):
-	arcpy.AddMessage(row)
 	parcelid = row.getValue("PARCELID")
-	arcpy.AddMessage(parcelid)
 	if parcelid == None:
 	    row.setValue("STATEID", row.getValue("PARCELFIPS"))
 	else:
@@ -88,12 +86,13 @@ def processSchoolDist(row,cursor,nameNoDict,noNameDict):
 
 #Calculate Improved
 def calcImproved(row,cursor):
-	if row.getValue("IMPVALUE") is None:
+	if int(row.getValue("IMPVALUE")) is None:
+		arcpy.AddMessage("PHERE")
 		row.setValue("IMPROVED", None)
-	elif row.getValue("IMPVALUE") > 0:
-		row.setValue("IMPROVED", "YES")
-	else:
+	elif int(row.getValue("IMPVALUE")) <= 0:
 		row.setValue("IMPROVED", "NO")
+	elif int(row.getValue("IMPVALUE")) > 0:
+		row.setValue("IMPROVED", "YES")
 	cursor.updateRow(row)
 
 #Numeric Value Cast
