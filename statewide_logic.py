@@ -72,8 +72,9 @@ def calcStateid(row,cursor):
 def processSchoolDist(row,cursor,nameNoDict,noNameDict):
 	schoolDistName = row.getValue("SCHOOLDIST")
 	schoolDistNo = row.getValue("SCHOOLDISTNO")
-
-	if schoolDistNo is None:
+	if schoolDistNo is None and schoolDistName is None:
+		row.getValue("SCHOOLDISTNO")
+	elif schoolDistNo is None:
 		for key, value in nameNoDict.iteritems():
 			if key in schoolDistName:
 				row.setValue("SCHOOLDISTNO", value)
@@ -86,8 +87,7 @@ def processSchoolDist(row,cursor,nameNoDict,noNameDict):
 
 #Calculate Improved
 def calcImproved(row,cursor):
-	if int(row.getValue("IMPVALUE")) is None:
-		arcpy.AddMessage("PHERE")
+	if row.getValue("IMPVALUE") is None:
 		row.setValue("IMPROVED", None)
 	elif int(row.getValue("IMPVALUE")) <= 0:
 		row.setValue("IMPROVED", "NO")
