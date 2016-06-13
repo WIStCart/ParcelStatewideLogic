@@ -89,9 +89,9 @@ def processSchoolDist(row,cursor,nameNoDict,noNameDict):
 def calcImproved(row,cursor):
 	if row.getValue("IMPVALUE") is None:
 		row.setValue("IMPROVED", None)
-	elif int(row.getValue("IMPVALUE")) <= 0:
+	elif float(row.getValue("IMPVALUE")) <= 0:
 		row.setValue("IMPROVED", "NO")
-	elif int(row.getValue("IMPVALUE")) > 0:
+	elif float(row.getValue("IMPVALUE")) > 0:
 		row.setValue("IMPROVED", "YES")
 	cursor.updateRow(row)
 
