@@ -57,6 +57,7 @@ arcpy.AddField_management(auxClassTable,"UNAUXCLASS", "TEXT", "", "", 150)
 
 #State ID
 def calcStateid(row,cursor):
+<<<<<<< HEAD
 	parcelid = row.getValue("PARCELID")
 	if parcelid == None:
 	    row.setValue("STATEID", row.getValue("PARCELFIPS"))
@@ -64,6 +65,17 @@ def calcStateid(row,cursor):
 		calculated = row.getValue("PARCELFIPS") + row.getValue("PARCELID")
 		row.setValue("STATEID", calculated)
 	cursor.updateRow(row)
+=======
+	if row.getValue("PARCELID") is None:
+	    row.setValue("STATEID", row.getValue("PARCELFIPS"))
+	    cursor.updateRow(row)
+	elif row.getValue("PARCELFIPS") is None:
+	    arcpy.AddMessage("PARCEL FIPS Null "+ str(row.getValue("PARCELID")))
+	else:
+	    calculated = row.getValue("PARCELFIPS") + row.getValue("PARCELID")
+	    row.setValue("STATEID", calculated)
+	    cursor.updateRow(row)
+>>>>>>> master
 
 #SchoolDist
 def processSchoolDist(row,cursor,nameNoDict,noNameDict):
