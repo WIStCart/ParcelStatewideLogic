@@ -89,25 +89,27 @@ def processSchoolDist(row,cursor,nameNoDict,noNameDict):
 
 #Calculate Improved
 def calcImproved(row,cursor):
-	if row.getValue("IMPVALUE") is None:
+	stringValue = re.sub("[^0-9.]", "",row.getValue("IMPVALUE"))
+	if stringValue is None or stringValue == "":
 		row.setValue("IMPROVED", None)
-	elif float((row.getValue("IMPVALUE")).replace("$", "").replace(",", "", 3)) <= 0:
+	elif float(stringValue) <= 0:
 		row.setValue("IMPROVED", "NO")
-	elif float((row.getValue("IMPVALUE")).replace("$", "").replace(",", "", 3)) > 0:
+	elif float(stringValue) > 0:
 		row.setValue("IMPROVED", "YES")
 	cursor.updateRow(row)
 
 #Numeric Value Cast
 def numValCast(row,cursor,field_list):
-	regexp = re.compile("[^0-9.]")
 	for field in field_list:
-		if row.getValue(field) is not None:
-			if "e" in row.getValue(field) or "E" in row.getValue(field):
-				row.setValue(field + "_DBL", float((row.getValue(field)).replace("$", "").replace(",", "", 3)))
+		stringValue = re.sub("[^0-9.]", "", str(row.getValue(field)))
+		matchObj = re.search( r'[E|e][-+][0-9]*', str(row.getValue(field)), re.M|re.I)# regex to test if the value is in exponential notation (test here: http://bit.ly/1UhXD7z)
+		if matchObj is not None:
+			stringValue = str(row.getValue(field))
+			arcpy.AddMessage(matchObj.group())
+		if row.getValue(field) is not None and stringValue != "":
 			#elif regexp.search(word) is not None:
 			#	row.setValue("NUM_CAST_FLAG",field)
-			else:
-				row.setValue(field + "_DBL", float((row.getValue(field)).replace("$", "").replace(",", "", 3)))
+			row.setValue(field + "_DBL", float(stringValue))
 		cursor.updateRow(row)
 
 #Unusual AUXCLASS: 
