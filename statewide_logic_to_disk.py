@@ -14,13 +14,16 @@ outName = arcpy.GetParameterAsText(2)
 #Initialize Variables
 rowCount = 0
 logEveryN = 100000
-double_field_list = ["CNTASSDVALUE_DBL","LNDVALUE_DBL","IMPVALUE_DBL","FORESTVALUE_DBL","ESTFMKVALUE_DBL",
-	"NETPRPTA_DBL","GRSPRPTA_DBL","ASSDACRES_DBL","DEEDACRES_DBL","GISACRES_DBL"]
+string_field_list = ["CNTASSDVALUE","LNDVALUE","IMPVALUE","FORESTVALUE","ESTFMKVALUE",
+	"NETPRPTA","GRSPRPTA","ASSDACRES","DEEDACRES","GISACRES"]
+#THIS LIST NOT CURRENTLY BEING USED:
+#double_field_list = ["CNTASSDVALUE_DBL","LNDVALUE_DBL","IMPVALUE_DBL","FORESTVALUE_DBL","ESTFMKVALUE_DBL",
+#	"NETPRPTA_DBL","GRSPRPTA_DBL","ASSDACRES_DBL","DEEDACRES_DBL","GISACRES_DBL"]
 
 #Create copy of feature class in memory
 arcpy.AddMessage("WRITING TO DISK")
 output_fc = os.path.join(outDir, outName)
-auxClassTable = os.path.join(outDir,"unusualAuxClassTable")
+auxClassTable = os.path.join(outDir,outName+"_unusualAuxClassTable")
 arcpy.FeatureClassToFeatureClass_conversion(in_fc,outDir,outName)
 
 #Add double fields for processing
@@ -47,7 +50,7 @@ for row in reader:
    schoolDist_nameNo_dict[v] = k
 #Create a table for the unusual AUXCLASS
 arcpy.AddMessage("CREATING AUXCLASS TABLE")
-arcpy.CreateTable_management(outDir,"unusualAuxClassTable")
+arcpy.CreateTable_management(outDir,outName+"_unusualAuxClassTable")
 arcpy.AddField_management(auxClassTable,"STATEID", "TEXT", "", "", 100)
 arcpy.AddField_management(auxClassTable,"UNAUXCLASS", "TEXT", "", "", 150)
 
@@ -88,9 +91,9 @@ def processSchoolDist(row,cursor,nameNoDict,noNameDict):
 def calcImproved(row,cursor):
 	if row.getValue("IMPVALUE") is None:
 		row.setValue("IMPROVED", None)
-	elif float(row.getValue("IMPVALUE")) <= 0:
+	elif float((row.getValue("IMPVALUE")).replace("$", "").replace(",", "", 3)) <= 0:
 		row.setValue("IMPROVED", "NO")
-	elif float(row.getValue("IMPVALUE")) > 0:
+	elif float((row.getValue("IMPVALUE")).replace("$", "").replace(",", "", 3)) > 0:
 		row.setValue("IMPROVED", "YES")
 	cursor.updateRow(row)
 
@@ -100,11 +103,12 @@ def numValCast(row,cursor,field_list):
 	for field in field_list:
 		if row.getValue(field) is not None:
 			if "e" in row.getValue(field) or "E" in row.getValue(field):
-				row.setValue(field + "_DBL", float(row.getValue(field)))
-			elif regexp.search(word) is not None:
-				row.setValue("NUM_CAST_FLAG",field)
+				row.setValue(field + "_DBL", float((row.getValue(field)).replace("$", "").replace(",", "", 3)))
+			#elif regexp.search(word) is not None:
+			#	row.setValue("NUM_CAST_FLAG",field)
 			else:
-				row.setValue(field + "_DBL", float(row.getValue(field)))
+				row.setValue(field + "_DBL", float((row.getValue(field)).replace("$", "").replace(",", "", 3)))
+		cursor.updateRow(row)
 
 #Unusual AUXCLASS: 
 def unusualAuxClass(row,cursor):
@@ -140,7 +144,7 @@ for row in updateCursor:
 	calcStateid(row, updateCursor)
 	processSchoolDist(row,updateCursor,schoolDist_nameNo_dict,schoolDist_noName_dict)
 	calcImproved(row, updateCursor)
-	numValCast(row, updateCursor,double_field_list)
+	numValCast(row, updateCursor,string_field_list)
 	#Unusual AUXCLASS
 	cantThinkOfName(row,updateCursor,auxClassTable)
 	if (rowCount % logEveryN) == 0:
