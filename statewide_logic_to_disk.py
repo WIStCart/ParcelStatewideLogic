@@ -89,7 +89,7 @@ def processSchoolDist(row,cursor,nameNoDict,noNameDict):
 
 #Calculate Improved
 def calcImproved(row,cursor):
-	stringValue = re.sub("[^0-9.]", "",row.getValue("IMPVALUE"))
+	stringValue = re.sub("[^0-9.]", "", str(row.getValue("IMPVALUE")))
 	if stringValue is None or stringValue == "":
 		row.setValue("IMPROVED", None)
 	elif float(stringValue) <= 0:
