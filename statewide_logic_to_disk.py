@@ -16,11 +16,12 @@ rowCount = 0
 logEveryN = 100000
 string_field_list = ["CNTASSDVALUE","LNDVALUE","IMPVALUE","FORESTVALUE","ESTFMKVALUE",
 	"NETPRPTA","GRSPRPTA","ASSDACRES","DEEDACRES","GISACRES"]
-#THIS LIST NOT CURRENTLY BEING USED:
-#double_field_list = ["CNTASSDVALUE_DBL","LNDVALUE_DBL","IMPVALUE_DBL","FORESTVALUE_DBL","ESTFMKVALUE_DBL",
-#	"NETPRPTA_DBL","GRSPRPTA_DBL","ASSDACRES_DBL","DEEDACRES_DBL","GISACRES_DBL"]
+string_field_alias_list = ["Total Assessed Value","Assessed Value of Land","Assessed Value of Improvements","Assessed Forest Value","Estimated Fair Market Value",
+	"Net Property Tax","Gross Property Tax","Assessed Acres","Deeded Acres","GIS Acres"]
+double_field_list = ["CNTASSDVALUE_DBL","LNDVALUE_DBL","IMPVALUE_DBL","FORESTVALUE_DBL","ESTFMKVALUE_DBL",
+	"NETPRPTA_DBL","GRSPRPTA_DBL","ASSDACRES_DBL","DEEDACRES_DBL","GISACRES_DBL"]
 
-#Create copy of feature class in memory
+#Create copy of feature class
 arcpy.AddMessage("WRITING TO DISK")
 output_fc = os.path.join(outDir, outName)
 auxClassTable = os.path.join(outDir,outName+"_unusualAuxClassTable")
@@ -222,6 +223,8 @@ def createSummarytables(output_fc,outDir,outName):
 	fieldList = ["PREFIX","STREETNAME","STREETTYPE","SUFFIX"]
 	for i in fieldList:
 		arcpy.Frequency_analysis(output_fc,outDir +"/"+outName+i+"_Summary",i)
+
+createSummarytables(in_fc,outDir,outName)
 		
 #Case and trim		
 def cleanCaseTrim(field,nullList,output_fc):
@@ -255,8 +258,9 @@ for field in fieldList:
 			cleanCaseTrim(field.name,nullArray,output_fc);
 
 #3 Post-Process
-
-#Field map 
-#Run a merge into the template schema
-#Clear workspace
-createSummarytables(in_fc,outDir,outName)
+#Delete String fields
+arcpy.DeleteField_management(output_fc, string_field_list)
+#Rename double fields to schema names
+for i in range(len(string_field_list)):
+	arcpy.AlterField_management(output_fc,double_field_list[i] , string_field_list[i],
+		string_field_alias_list[i])
