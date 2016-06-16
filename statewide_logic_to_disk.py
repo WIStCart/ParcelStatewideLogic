@@ -10,9 +10,6 @@ import os
 in_fc = arcpy.GetParameterAsText(0)
 outDir = arcpy.GetParameterAsText(1)
 outName = arcpy.GetParameterAsText(2)
-cs = arcpy.GetParameterAsText(3)
-if not cs:
-	cs = arcpy.env.outputCoordinateSystem
 
 #Initialize Variables
 rowCount = 0
@@ -147,11 +144,13 @@ def Update(field, value):
 	if value:
 		if not math.isnan(value):
 			row[ucurFields.index(field)] = value
-	
+
 def writeLatLng():
-	arcpy.AddMessage("Using the following CRS to construct Lat Longs: \n" + cs)
 	fields = ["OBJECTID","LONGITUDE","LATITUDE"]	
-	with arcpy.da.UpdateCursor(output_fc,fields + ["SHAPE@"],"",cs) as ucur:
+	sr = arcpy.SpatialReference(4326) # GCS_WGS_1984 WKID: 4326 Authority: EPSG - Use this to construct lat lng values in decimal degrees
+	arcpy.AddMessage("\nUsing the following CRS to construct Lat Lng attributes: \n" + sr.name + "\n")
+	# Was receiving a workspace conflict when nesting two arcpy.da cursors within one another, thus chose to perform two separate iterations (this is also beneficial of we want the CRS outputs to be different between the two) 
+	with arcpy.da.UpdateCursor(output_fc,fields + ["SHAPE@"],"",sr) as ucur:
 		ucurFields = ucur.fields
 		global ucurFields
 		for row in ucur:
@@ -162,9 +161,42 @@ def writeLatLng():
 					Update("LONGITUDE", geom.centroid.X)
 					Update("LATITUDE", geom.centroid.Y)
 				except:
-					arcpy.AddMessage("FAILING LAT LONG CONSTRUCT ON OID: " + str(row[ucurFields.index("OBJECTID")]))
+					arcpy.AddMessage("FAILING LAT LNG ATTRIBUTE CONSTRUCT ON OID: " + str(row[ucurFields.index("OBJECTID")]))
 			ucur.updateRow(row)
 		arcpy.SetProgressorPosition()
+
+	# Set variables for creating a parcel point layer
+	out_path = outDir
+	out_name = outName + "_points"
+	geometry_type = "POINT"
+	template = output_fc # the output polygon feature class is used as an attribute template (to copy the V2 schema into the point layer)
+	has_m = "DISABLED"
+	has_z = "DISABLED"
+
+	# Use "Describe" to get a SpatialReference object of the output polygon feature class, then apply it to the point feature class.
+	spatial_reference = arcpy.Describe(template).spatialReference
+	arcpy.AddMessage("\nUsing the following CRS to construct a point file: \n" + spatial_reference.name + "\n")
+
+	# Execute CreateFeatureclass in order to create the point layer
+	arcpy.CreateFeatureclass_management(out_path, out_name, geometry_type, template, has_m, has_z, spatial_reference)
+
+	# Create a search cursor for iterating parcels and an insert cursor for writing points to the point fc.
+	point_fc = os.path.join(out_path, out_name)
+	pt_cursor = arcpy.da.InsertCursor(point_fc, ["SHAPE@XY"]) 
+	with arcpy.da.SearchCursor(output_fc,fields + ["SHAPE@"],"", spatial_reference) as ucur:
+		ucurFields = ucur.fields
+		for row in ucur:
+			geom = row[ucurFields.index("SHAPE@")]
+			if geom:
+				try:
+					if geom.centroid.Y:
+						if not math.isnan(geom.centroid.Y):
+							xy = (geom.centroid.X, geom.centroid.Y)
+							pt_cursor.insertRow([xy])
+				except:
+					arcpy.AddMessage("FAILING POINT CONSTRUCT ON OID: " + str(row[ucurFields.index("OBJECTID")]))
+		arcpy.SetProgressorPosition()
+		del(pt_cursor)
 
 arcpy.AddMessage("PROCESSING ROWS")
 updateCursor = arcpy.UpdateCursor(output_fc)
