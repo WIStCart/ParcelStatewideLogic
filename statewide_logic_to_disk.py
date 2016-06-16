@@ -212,9 +212,7 @@ for row in updateCursor:
 	cantThinkOfName(row,updateCursor,auxClassTable)
 	if (rowCount % logEveryN) == 0:
 		arcpy.AddMessage("PROCESSED "+str(rowCount)+" RECORDS")
-del(updateCursor)
-
-writeLatLng()	
+del(updateCursor)	
 
 #2 Column operations
 arcpy.AddMessage("PROCESSING COLUMNS")
@@ -258,6 +256,9 @@ for field in fieldList:
 			cleanCaseTrim(field.name,nullArray,output_fc);
 
 #3 Post-Process
+#write lat lng to attribute fields, create point centroid file.
+writeLatLng()
+
 #Delete String fields
 arcpy.DeleteField_management(output_fc, string_field_list)
 #Rename double fields to schema names
