@@ -197,7 +197,7 @@ def writeLatLng():
 		for row in ucur:
 			geom = row[ucurFields.index("SHAPE@")]
 			if geom:
-				#try:
+				try:
 					if geom.centroid.Y:
 						if not math.isnan(geom.centroid.Y):
 							#Get row values
@@ -207,8 +207,8 @@ def writeLatLng():
 							#Get point and insert new row
 							xy = (geom.centroid.X, geom.centroid.Y)
 							pt_cursor.insertRow(parcelRecordArray + [xy])
-				#except:
-				#	arcpy.AddMessage("FAILING POINT CONSTRUCT ON OID: " + str(row[ucurFields.index("OBJECTID")]))
+				except:
+					arcpy.AddMessage("FAILING POINT CONSTRUCT ON OID: " + str(row[ucurFields.index("OBJECTID")]))
 		arcpy.SetProgressorPosition()
 		del(pt_cursor)
 
