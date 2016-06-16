@@ -211,9 +211,7 @@ for row in updateCursor:
 	cantThinkOfName(row,updateCursor,auxClassTable)
 	if (rowCount % logEveryN) == 0:
 		arcpy.AddMessage("PROCESSED "+str(rowCount)+" RECORDS")
-del(updateCursor)
-
-writeLatLng()	
+del(updateCursor)	
 
 #2 Column operations
 arcpy.AddMessage("PROCESSING COLUMNS")
@@ -260,3 +258,5 @@ for field in fieldList:
 #Run a merge into the template schema
 #Clear workspace
 createSummarytables(in_fc,outDir,outName)
+#write lat lng to attribute fields, create point centroid file.
+writeLatLng()
