@@ -39,7 +39,7 @@ arcpy.AddField_management(output_fc,"GRSPRPTA_DBL", "DOUBLE")
 arcpy.AddField_management(output_fc,"ASSDACRES_DBL", "DOUBLE")
 arcpy.AddField_management(output_fc,"DEEDACRES_DBL", "DOUBLE")
 arcpy.AddField_management(output_fc,"GISACRES_DBL", "DOUBLE")
-arcpy.AddField_management(output_fc,"NUM_CAST_FLAG", "TEXT", "", "", 50)
+#arcpy.AddField_management(output_fc,"NUM_CAST_FLAG", "TEXT", "", "", 50) #doesn't look like we are using this
 arcpy.AddField_management(output_fc,"LONGITUDE", "DOUBLE")
 arcpy.AddField_management(output_fc,"LATITUDE", "DOUBLE")
 
@@ -58,8 +58,6 @@ arcpy.AddField_management(auxClassTable,"STATEID", "TEXT", "", "", 100)
 arcpy.AddField_management(auxClassTable,"UNAUXCLASS", "TEXT", "", "", 150)
 
 #1 Row operations
-
-#Clean Case and Trim (plus carriage returns)
 
 #State ID
 def calcStateid(row,cursor):
@@ -147,7 +145,15 @@ def Update(field, value):
 			row[ucurFields.index(field)] = value
 
 def writeLatLng():
-	fields = ["OBJECTID","LONGITUDE","LATITUDE"]	
+	fields = ["OBJECTID","LONGITUDE","LATITUDE"]
+	#Get field names for writing point FC
+	schema_fields = [f.name for f in arcpy.ListFields(str(output_fc))]
+	desc = arcpy.Describe(output_fc)
+	for field in desc.fields:
+		if field.name == 'Shape':
+			schema_fields.remove(field.name)
+		if field.editable == False:
+			schema_fields.remove(field.name)
 	sr = arcpy.SpatialReference(4326) # GCS_WGS_1984 WKID: 4326 Authority: EPSG - Use this to construct lat lng values in decimal degrees
 	arcpy.AddMessage("\nUsing the following CRS to construct Lat Lng attributes: \n" + sr.name + "\n")
 	# Was receiving a workspace conflict when nesting two arcpy.da cursors within one another, thus chose to perform two separate iterations (this is also beneficial of we want the CRS outputs to be different between the two) 
@@ -183,19 +189,26 @@ def writeLatLng():
 
 	# Create a search cursor for iterating parcels and an insert cursor for writing points to the point fc.
 	point_fc = os.path.join(out_path, out_name)
-	pt_cursor = arcpy.da.InsertCursor(point_fc, ["SHAPE@XY"]) 
-	with arcpy.da.SearchCursor(output_fc,fields + ["SHAPE@"],"", spatial_reference) as ucur:
+	pt_cursor = arcpy.da.InsertCursor(point_fc, schema_fields + ["SHAPE@XY"])
+	with arcpy.da.SearchCursor(output_fc,schema_fields + ["SHAPE@"],"", spatial_reference) as ucur:
 		ucurFields = ucur.fields
+		arcpy.AddMessage(ucurFields)
+		arcpy.AddMessage(schema_fields)
 		for row in ucur:
 			geom = row[ucurFields.index("SHAPE@")]
 			if geom:
-				try:
+				#try:
 					if geom.centroid.Y:
 						if not math.isnan(geom.centroid.Y):
+							#Get row values
+							parcelRecordArray = list()
+							for field in schema_fields:
+								parcelRecordArray.append(row[ucurFields.index(field)])
+							#Get point and insert new row
 							xy = (geom.centroid.X, geom.centroid.Y)
-							pt_cursor.insertRow([xy])
-				except:
-					arcpy.AddMessage("FAILING POINT CONSTRUCT ON OID: " + str(row[ucurFields.index("OBJECTID")]))
+							pt_cursor.insertRow(parcelRecordArray + [xy])
+				#except:
+				#	arcpy.AddMessage("FAILING POINT CONSTRUCT ON OID: " + str(row[ucurFields.index("OBJECTID")]))
 		arcpy.SetProgressorPosition()
 		del(pt_cursor)
 
@@ -256,12 +269,14 @@ for field in fieldList:
 			cleanCaseTrim(field.name,nullArray,output_fc);
 
 #3 Post-Process
-#write lat lng to attribute fields, create point centroid file.
-writeLatLng()
 
 #Delete String fields
+arcpy.AddMessage("RENAMING FIELDS")
 arcpy.DeleteField_management(output_fc, string_field_list)
 #Rename double fields to schema names
 for i in range(len(string_field_list)):
 	arcpy.AlterField_management(output_fc,double_field_list[i] , string_field_list[i],
 		string_field_alias_list[i])
+
+#write lat lng to attribute fields, create point centroid file.
+writeLatLng()
