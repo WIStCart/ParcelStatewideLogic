@@ -10,6 +10,9 @@ import os
 in_fc = arcpy.GetParameterAsText(0)
 outDir = arcpy.GetParameterAsText(1)
 outName = arcpy.GetParameterAsText(2)
+cs = arcpy.GetParameterAsText(3)
+if not cs:
+	cs = arcpy.env.outputCoordinateSystem
 
 #Initialize Variables
 rowCount = 0
@@ -39,6 +42,8 @@ arcpy.AddField_management(output_fc,"ASSDACRES_DBL", "DOUBLE")
 arcpy.AddField_management(output_fc,"DEEDACRES_DBL", "DOUBLE")
 arcpy.AddField_management(output_fc,"GISACRES_DBL", "DOUBLE")
 arcpy.AddField_management(output_fc,"NUM_CAST_FLAG", "TEXT", "", "", 50)
+arcpy.AddField_management(output_fc,"LONGITUDE", "DOUBLE")
+arcpy.AddField_management(output_fc,"LATITUDE", "DOUBLE")
 
 #Parse SchoolDist csv to create two lists
 reader = csv.reader(open(os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])),'school_district_codes.csv'), 'r'))
@@ -61,14 +66,14 @@ arcpy.AddField_management(auxClassTable,"UNAUXCLASS", "TEXT", "", "", 150)
 #State ID
 def calcStateid(row,cursor):
 	if row.getValue("PARCELID") is None:
-	    row.setValue("STATEID", row.getValue("PARCELFIPS"))
-	    cursor.updateRow(row)
+		row.setValue("STATEID", row.getValue("PARCELFIPS"))
+		cursor.updateRow(row)
 	elif row.getValue("PARCELFIPS") is None:
-	    arcpy.AddMessage("PARCEL FIPS Null "+ str(row.getValue("PARCELID")))
+		arcpy.AddMessage("PARCEL FIPS Null "+ str(row.getValue("PARCELID")))
 	else:
-	    calculated = row.getValue("PARCELFIPS") + row.getValue("PARCELID")
-	    row.setValue("STATEID", calculated)
-	    cursor.updateRow(row)
+		calculated = row.getValue("PARCELFIPS") + row.getValue("PARCELID")
+		row.setValue("STATEID", calculated)
+		cursor.updateRow(row)
 
 #SchoolDist
 def processSchoolDist(row,cursor,nameNoDict,noNameDict):
@@ -105,7 +110,7 @@ def numValCast(row,cursor,field_list):
 		matchObj = re.search( r'[E|e][-+][0-9]*', str(row.getValue(field)), re.M|re.I)# regex to test if the value is in exponential notation (test here: http://bit.ly/1UhXD7z)
 		if matchObj is not None:
 			stringValue = str(row.getValue(field))
-			arcpy.AddMessage(matchObj.group())
+			#arcpy.AddMessage(matchObj.group())
 		if row.getValue(field) is not None and stringValue != "":
 			#elif regexp.search(word) is not None:
 			#	row.setValue("NUM_CAST_FLAG",field)
@@ -138,6 +143,29 @@ def cantThinkOfName(row,cursor,auxClassTable):
 			insertCursor.insertRow(inRow)
 			del(insertCursor)
 
+def Update(field, value):
+	if value:
+		if not math.isnan(value):
+			row[ucurFields.index(field)] = value
+	
+def writeLatLng():
+	arcpy.AddMessage("Using the following CRS to construct Lat Longs: \n" + cs)
+	fields = ["OBJECTID","LONGITUDE","LATITUDE"]	
+	with arcpy.da.UpdateCursor(output_fc,fields + ["SHAPE@"],"",cs) as ucur:
+		ucurFields = ucur.fields
+		global ucurFields
+		for row in ucur:
+			global row
+			geom = row[ucurFields.index("SHAPE@")]
+			if geom:
+				try:
+					Update("LONGITUDE", geom.centroid.X)
+					Update("LATITUDE", geom.centroid.Y)
+				except:
+					arcpy.AddMessage("FAILING LAT LONG CONSTRUCT ON OID: " + str(row[ucurFields.index("OBJECTID")]))
+			ucur.updateRow(row)
+		arcpy.SetProgressorPosition()
+
 arcpy.AddMessage("PROCESSING ROWS")
 updateCursor = arcpy.UpdateCursor(output_fc)
 
@@ -152,7 +180,8 @@ for row in updateCursor:
 	if (rowCount % logEveryN) == 0:
 		arcpy.AddMessage("PROCESSED "+str(rowCount)+" RECORDS")
 del(updateCursor)
-	
+
+writeLatLng()	
 
 #2 Column operations
 arcpy.AddMessage("PROCESSING COLUMNS")
@@ -189,9 +218,9 @@ nullArray = ["<Null>", "<NULL>", "NULL", ""]
 #Get fields in feature class and loop through them
 fieldList = arcpy.ListFields(output_fc)
 for field in fieldList:
-    if field.name != "OBJECTID" and field.name != "SHAPE" and field.name != "SHAPE_LENGTH" and field.name != "SHAPE_AREA": 
-        if field.type == "String":
-            cleanCaseTrim(field.name,nullArray,output_fc);
+	if field.name != "OBJECTID" and field.name != "SHAPE" and field.name != "SHAPE_LENGTH" and field.name != "SHAPE_AREA": 
+		if field.type == "String":
+			cleanCaseTrim(field.name,nullArray,output_fc);
 
 #3 Post-Process
 
