@@ -29,13 +29,13 @@ arcpy.FeatureClassToFeatureClass_conversion(in_fc,outDir,outName)
 
 #Add double fields for processing
 arcpy.AddMessage("ADDING FIELDS")
-arcpy.AddField_management(output_fc,"CNTASSDVALUE_DBL", "DOUBLE")
-arcpy.AddField_management(output_fc,"LNDVALUE_DBL", "DOUBLE")
-arcpy.AddField_management(output_fc,"IMPVALUE_DBL", "DOUBLE")
-arcpy.AddField_management(output_fc,"FORESTVALUE_DBL", "DOUBLE")
-arcpy.AddField_management(output_fc,"ESTFMKVALUE_DBL", "DOUBLE")
-arcpy.AddField_management(output_fc,"NETPRPTA_DBL", "DOUBLE")
-arcpy.AddField_management(output_fc,"GRSPRPTA_DBL", "DOUBLE")
+arcpy.AddField_management(output_fc,"CNTASSDVALUE_DBL", "DOUBLE","",2)
+arcpy.AddField_management(output_fc,"LNDVALUE_DBL", "DOUBLE","",2)
+arcpy.AddField_management(output_fc,"IMPVALUE_DBL", "DOUBLE","",2)
+arcpy.AddField_management(output_fc,"FORESTVALUE_DBL", "DOUBLE","",2)
+arcpy.AddField_management(output_fc,"ESTFMKVALUE_DBL", "DOUBLE","",2)
+arcpy.AddField_management(output_fc,"NETPRPTA_DBL", "DOUBLE","",2)
+arcpy.AddField_management(output_fc,"GRSPRPTA_DBL", "DOUBLE","",2)
 arcpy.AddField_management(output_fc,"ASSDACRES_DBL", "DOUBLE")
 arcpy.AddField_management(output_fc,"DEEDACRES_DBL", "DOUBLE")
 arcpy.AddField_management(output_fc,"GISACRES_DBL", "DOUBLE")
@@ -49,7 +49,7 @@ schoolDist_nameNo_dict = {}
 schoolDist_noName_dict = {}
 for row in reader:
    k, v = row
-   schoolDist_noName_dict[k] = v
+   schoolDist_noName_dict[k] = v + " SCHOOL DISTRICT"
    schoolDist_nameNo_dict[v] = k
 #Create a table for the unusual AUXCLASS
 arcpy.AddMessage("CREATING AUXCLASS TABLE")
@@ -110,7 +110,7 @@ def numValCast(row,cursor,field_list):
 		if row.getValue(field) is not None and stringValue != "":
 			#elif regexp.search(word) is not None:
 			#	row.setValue("NUM_CAST_FLAG",field)
-			row.setValue(field + "_DBL", float(stringValue))
+			row.setValue(field + "_DBL", round(float(stringValue),2))
 		cursor.updateRow(row)
 
 #Unusual AUXCLASS: 
@@ -192,8 +192,6 @@ def writeLatLng():
 	pt_cursor = arcpy.da.InsertCursor(point_fc, schema_fields + ["SHAPE@XY"])
 	with arcpy.da.SearchCursor(output_fc,schema_fields + ["SHAPE@"],"", spatial_reference) as ucur:
 		ucurFields = ucur.fields
-		arcpy.AddMessage(ucurFields)
-		arcpy.AddMessage(schema_fields)
 		for row in ucur:
 			geom = row[ucurFields.index("SHAPE@")]
 			if geom:
@@ -234,8 +232,6 @@ def createSummarytables(output_fc,outDir,outName):
 	fieldList = ["PREFIX","STREETNAME","STREETTYPE","SUFFIX"]
 	for i in fieldList:
 		arcpy.Frequency_analysis(output_fc,outDir +"/"+outName+i+"_Summary",i)
-
-createSummarytables(in_fc,outDir,outName)
 		
 #Case and trim		
 def cleanCaseTrim(field,nullList,output_fc):
@@ -268,6 +264,8 @@ for field in fieldList:
 		if field.type == "String":
 			cleanCaseTrim(field.name,nullArray,output_fc);
 
+
+createSummarytables(in_fc,outDir,outName)
 #3 Post-Process
 
 #Delete String fields
