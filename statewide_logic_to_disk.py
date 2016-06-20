@@ -190,21 +190,19 @@ def writeLatLng():
 	# Create a search cursor for iterating parcels and an insert cursor for writing points to the point fc.
 	point_fc = os.path.join(out_path, out_name)
 	pt_cursor = arcpy.da.InsertCursor(point_fc, schema_fields + ["SHAPE@XY"])
-	with arcpy.da.SearchCursor(output_fc,schema_fields + ["SHAPE@"],"", spatial_reference) as ucur:
+	with arcpy.da.SearchCursor(output_fc,schema_fields + ["SHAPE@"] + ["OBJECTID"],"", spatial_reference) as ucur:
 		ucurFields = ucur.fields
 		for row in ucur:
 			geom = row[ucurFields.index("SHAPE@")]
 			if geom:
 				try:
-					if geom.centroid.Y:
-						if not math.isnan(geom.centroid.Y):
-							#Get row values
-							parcelRecordArray = list()
-							for field in schema_fields:
-								parcelRecordArray.append(row[ucurFields.index(field)])
-							#Get point and insert new row
-							xy = (geom.centroid.X, geom.centroid.Y)
-							pt_cursor.insertRow(parcelRecordArray + [xy])
+					#Get row values
+					parcelRecordArray = list()
+					for field in schema_fields:
+						parcelRecordArray.append(row[ucurFields.index(field)])
+					#Get point and insert new row
+					xy = (geom.centroid.X, geom.centroid.Y)
+					pt_cursor.insertRow(parcelRecordArray + [xy])
 				except:
 					arcpy.AddMessage("FAILING POINT CONSTRUCT ON OID: " + str(row[ucurFields.index("OBJECTID")]))
 		arcpy.SetProgressorPosition()
