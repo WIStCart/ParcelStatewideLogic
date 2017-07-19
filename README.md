@@ -2,6 +2,7 @@
 An ArcGIS arcpy script tool, designed to handle aspects of standardization, added value, and QA/QC upon the V3 Wisconsin Statewide Parcel Database.
 
 Processing steps include:
+
 -Converts the following fields from string to double:
 'CNTASSDVALUE','LNDVALUE','IMPVALUE','FORESTVALUE','ESTFMKVALUE', 'NETPRPTA','GRSPRPTA','ASSDACRES','DEEDACRES','GISACRES', 'LONGITUDE', 'LATITUDE'
 
