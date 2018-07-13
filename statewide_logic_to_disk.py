@@ -139,6 +139,15 @@ def cantThinkOfName(row,cursor,auxClassTable):
 			insertCursor.insertRow(inRow)
 			del(insertCursor)
 
+def estfmkCorrection(row,cursor):
+	propvalue = row.getValue("PROPCLASS")
+	estvalue = row.getValue("ESTFMKVALUE_DBL")
+	arcpy.AddMessage('Calling estfmkCorrection function now.')
+	if estvalue is not None and propvalue is not None and (propvalue.find('4') >= 0):
+		arcpy.AddMessage("Propclass value is: " + row.getValue("PROPCLASS") + " and Estfmkvalue is " + str(row.getValue("ESTFMKVALUE_DBL")) + ".")
+		row.setValue("ESTFMKVALUE_DBL",None)
+	cursor.updateRow(row)
+
 def Update(field, value):
 	if value:
 		if not math.isnan(value):
@@ -219,6 +228,7 @@ for row in updateCursor:
 	numValCast(row, updateCursor,string_field_list)
 	#Unusual AUXCLASS
 	cantThinkOfName(row,updateCursor,auxClassTable)
+	estfmkCorrection(row,updateCursor)
 	if (rowCount % logEveryN) == 0:
 		arcpy.AddMessage("PROCESSED "+str(rowCount)+" RECORDS")
 del(updateCursor)	
@@ -263,7 +273,7 @@ for field in fieldList:
 			cleanCaseTrim(field.name,nullArray,output_fc);
 
 
-createSummarytables(in_fc,outDir,outName)
+createSummarytables(output_fc,outDir,outName)
 #3 Post-Process
 
 #Delete String fields
