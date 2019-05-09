@@ -57,6 +57,8 @@ arcpy.CreateTable_management(outDir,outName+"_unusualAuxClassTable")
 arcpy.AddField_management(auxClassTable,"STATEID", "TEXT", "", "", 100)
 arcpy.AddField_management(auxClassTable,"UNAUXCLASS", "TEXT", "", "", 150)
 
+
+
 #1 Row operations
 
 #State ID
@@ -113,8 +115,10 @@ def numValCast(row,cursor,field_list):
 			row.setValue(field + "_DBL", round(float(stringValue),2))
 		cursor.updateRow(row)
 
-#Unusual AUXCLASS: 
+#Unusual AUXCLASS:
 def unusualAuxClass(row,cursor):
+	# domain w/exceptions from validation tool
+	#auxClassDef = ['W1','W2','W3','W4','W5','W6','W7','W8','W9','X1','X2','X3','X4','X5','M','XTEL','S1', 'U', 'AWO', 'FM6', 'FM7', 'FM8', 'AW']
 	auxClassDef = ["W1","W2","W3","W4","W5","W6","W7","W8","X1","X2","X3","X4"]
 	auxClass = row.getValue("AUXCLASS")
 	auxClass.replace(" ","")
@@ -128,7 +132,7 @@ def unusualAuxClass(row,cursor):
 	else:
 		return None
 
-def cantThinkOfName(row,cursor,auxClassTable):		
+def cantThinkOfName(row,cursor,auxClassTable):
 	if row.getValue("AUXCLASS") is not None:
 		auxClass = unusualAuxClass(row,updateCursor)
 		if auxClass is not None:
@@ -139,10 +143,19 @@ def cantThinkOfName(row,cursor,auxClassTable):
 			insertCursor.insertRow(inRow)
 			del(insertCursor)
 
+def taxrollForNewParcels(row,cursor):
+	taxyearvalue = row.getValue("TAXROLLYEAR")
+	if taxyearvalue == '2019' or taxyearvalue == '2020' :
+		fieldList = ["CNTASSDVALUE_DBL","LNDVALUE_DBL","IMPVALUE_DBL","FORESTVALUE_DBL","ESTFMKVALUE_DBL","NETPRPTA_DBL","GRSPRPTA_DBL","PROPCLASS","AUXCLASS","ASSDACRES_DBL"]
+		for i in range(len(fieldList)):
+			row.setValue(fieldList[i], None)
+	cursor.updateRow(row)
+
 def estfmkCorrection(row,cursor):
 	propvalue = row.getValue("PROPCLASS")
 	estvalue = row.getValue("ESTFMKVALUE_DBL")
-	if estvalue is not None and propvalue is not None and (propvalue.find('4') >= 0):
+	if estvalue is not None and propvalue is not None and (re.search('4', str(propvalue)) or re.search('5',str(propvalue))):
+		arcpy.AddMessage("propclass" + str(propvalue) )
 		row.setValue("ESTFMKVALUE_DBL",None)
 	cursor.updateRow(row)
 
@@ -163,7 +176,7 @@ def writeLatLng():
 			schema_fields.remove(field.name)
 	sr = arcpy.SpatialReference(4326) # GCS_WGS_1984 WKID: 4326 Authority: EPSG - Use this to construct lat lng values in decimal degrees
 	arcpy.AddMessage("\nUsing the following CRS to construct Lat Lng attributes: \n" + sr.name + "\n")
-	# Was receiving a workspace conflict when nesting two arcpy.da cursors within one another, thus chose to perform two separate iterations (this is also beneficial of we want the CRS outputs to be different between the two) 
+	# Was receiving a workspace conflict when nesting two arcpy.da cursors within one another, thus chose to perform two separate iterations (this is also beneficial of we want the CRS outputs to be different between the two)
 	with arcpy.da.UpdateCursor(output_fc,fields + ["SHAPE@"],"",sr) as ucur:
 		ucurFields = ucur.fields
 		global ucurFields
@@ -215,6 +228,9 @@ def writeLatLng():
 		arcpy.SetProgressorPosition()
 		del(pt_cursor)
 
+
+
+##  start processing rows
 arcpy.AddMessage("PROCESSING ROWS")
 updateCursor = arcpy.UpdateCursor(output_fc)
 
@@ -223,13 +239,16 @@ for row in updateCursor:
 	calcStateid(row, updateCursor)
 	processSchoolDist(row,updateCursor,schoolDist_nameNo_dict,schoolDist_noName_dict)
 	calcImproved(row, updateCursor)
-	numValCast(row, updateCursor,string_field_list)
+	#numValCast(row, updateCursor,string_field_list)
 	#Unusual AUXCLASS
 	cantThinkOfName(row,updateCursor,auxClassTable)
+	taxrollForNewParcels(row,updateCursor)
 	estfmkCorrection(row,updateCursor)
 	if (rowCount % logEveryN) == 0:
 		arcpy.AddMessage("PROCESSED "+str(rowCount)+" RECORDS")
-del(updateCursor)	
+del(updateCursor)
+
+
 
 #2 Column operations
 arcpy.AddMessage("PROCESSING COLUMNS")
@@ -238,12 +257,12 @@ def createSummarytables(output_fc,outDir,outName):
 	fieldList = ["PREFIX","STREETNAME","STREETTYPE","SUFFIX"]
 	for i in fieldList:
 		arcpy.Frequency_analysis(output_fc,outDir +"/"+outName+i+"_Summary",i)
-		
-#Case and trim		
+
+#Case and trim
 def cleanCaseTrim(field,nullList,output_fc):
 	query = '("' + field + '" IS NOT ' + "" + "NULL" + ')'
 	cursor = arcpy.UpdateCursor(output_fc, query)
-	
+
 	#Loop through each row in a given field
 	for row in cursor:
 		#Strip whitespace, uppercase alpha characters, remove carriage returns
@@ -259,14 +278,16 @@ def cleanCaseTrim(field,nullList,output_fc):
 				found = True
 			else:
 				count += 1
-					
-#null array 
+
+
+##  start processing Columns
+#null array
 nullArray = ["<Null>", "<NULL>", "NULL", ""]
 
 #Get fields in feature class and loop through them
 fieldList = arcpy.ListFields(output_fc)
 for field in fieldList:
-	if field.name != "OBJECTID" and field.name != "SHAPE" and field.name != "SHAPE_LENGTH" and field.name != "SHAPE_AREA": 
+	if field.name != "OBJECTID" and field.name != "SHAPE" and field.name != "SHAPE_LENGTH" and field.name != "SHAPE_AREA":
 		if field.type == "String":
 			cleanCaseTrim(field.name,nullArray,output_fc);
 
