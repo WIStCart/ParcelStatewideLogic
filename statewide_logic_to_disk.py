@@ -48,9 +48,9 @@ reader = csv.reader(open(os.path.join(os.path.dirname(os.path.realpath(sys.argv[
 schoolDist_nameNo_dict = {}
 schoolDist_noName_dict = {}
 for row in reader:
-   k, v = row
-   schoolDist_noName_dict[k] = v + " SCHOOL DISTRICT"
-   schoolDist_nameNo_dict[v] = k
+  k, v = row
+  schoolDist_noName_dict[k] = v
+  schoolDist_nameNo_dict[v] = k
 #Create a table for the unusual AUXCLASS
 arcpy.AddMessage("CREATING AUXCLASS TABLE")
 arcpy.CreateTable_management(outDir,outName+"_unusualAuxClassTable")
@@ -239,7 +239,7 @@ for row in updateCursor:
 	calcStateid(row, updateCursor)
 	processSchoolDist(row,updateCursor,schoolDist_nameNo_dict,schoolDist_noName_dict)
 	calcImproved(row, updateCursor)
-	#numValCast(row, updateCursor,string_field_list)
+	numValCast(row, updateCursor,string_field_list)
 	#Unusual AUXCLASS
 	cantThinkOfName(row,updateCursor,auxClassTable)
 	taxrollForNewParcels(row,updateCursor)
