@@ -42,7 +42,7 @@ else:
 	#else:
 	#	arcpy.AddMessage('No Box folder match found, double check --> client.search(... line of code')
 
-	root_folder = client.folder(folder_id= 'V500_by_County_TEST')
+	root_folder = client.folder(folder_id= boxDir)
 	#arcpy.AddMessage(root_folder)
 
 # FULL STATE
