@@ -14,11 +14,11 @@ outName = arcpy.GetParameterAsText(2)
 #Initialize Variables
 rowCount = 0
 logEveryN = 100000
-string_field_list = ["CNTASSDVALUE","LNDVALUE","IMPVALUE","FORESTVALUE","ESTFMKVALUE",
+string_field_list = ["CNTASSDVALUE","LNDVALUE","IMPVALUE","MFLVALUE","ESTFMKVALUE",
 	"NETPRPTA","GRSPRPTA","ASSDACRES","DEEDACRES","GISACRES"]
-string_field_alias_list = ["Total Assessed Value","Assessed Value of Land","Assessed Value of Improvements","Assessed Forest Value","Estimated Fair Market Value",
+string_field_alias_list = ["Total Assessed Value","Assessed Value of Land","Assessed Value of Improvements","Assessed Value of MFL/FCL Land","Estimated Fair Market Value",
 	"Net Property Tax","Gross Property Tax","Assessed Acres","Deeded Acres","GIS Acres"]
-double_field_list = ["CNTASSDVALUE_DBL","LNDVALUE_DBL","IMPVALUE_DBL","FORESTVALUE_DBL","ESTFMKVALUE_DBL",
+double_field_list = ["CNTASSDVALUE_DBL","LNDVALUE_DBL","IMPVALUE_DBL","MFLVALUE_DBL","ESTFMKVALUE_DBL",
 	"NETPRPTA_DBL","GRSPRPTA_DBL","ASSDACRES_DBL","DEEDACRES_DBL","GISACRES_DBL"]
 
 #Create copy of feature class
@@ -32,7 +32,7 @@ arcpy.AddMessage("ADDING FIELDS")
 arcpy.AddField_management(output_fc,"CNTASSDVALUE_DBL", "DOUBLE","",2)
 arcpy.AddField_management(output_fc,"LNDVALUE_DBL", "DOUBLE","",2)
 arcpy.AddField_management(output_fc,"IMPVALUE_DBL", "DOUBLE","",2)
-arcpy.AddField_management(output_fc,"FORESTVALUE_DBL", "DOUBLE","",2)
+arcpy.AddField_management(output_fc,"MFLVALUE_DBL", "DOUBLE","",2)
 arcpy.AddField_management(output_fc,"ESTFMKVALUE_DBL", "DOUBLE","",2)
 arcpy.AddField_management(output_fc,"NETPRPTA_DBL", "DOUBLE","",2)
 arcpy.AddField_management(output_fc,"GRSPRPTA_DBL", "DOUBLE","",2)
@@ -145,8 +145,8 @@ def cantThinkOfName(row,cursor,auxClassTable):
 
 def taxrollForNewParcels(row,cursor):
 	taxyearvalue = row.getValue("TAXROLLYEAR")
-	if taxyearvalue == '2019' or taxyearvalue == '2020' :
-		fieldList = ["CNTASSDVALUE_DBL","LNDVALUE_DBL","IMPVALUE_DBL","FORESTVALUE_DBL","ESTFMKVALUE_DBL","NETPRPTA_DBL","GRSPRPTA_DBL","PROPCLASS","AUXCLASS","ASSDACRES_DBL"]
+	if taxyearvalue == '2020' or taxyearvalue == '2021' :
+		fieldList = ["CNTASSDVALUE_DBL","LNDVALUE_DBL","IMPVALUE_DBL","MFLVALUE_DBL","ESTFMKVALUE_DBL","NETPRPTA_DBL","GRSPRPTA_DBL","PROPCLASS","AUXCLASS","ASSDACRES_DBL"]
 		for i in range(len(fieldList)):
 			row.setValue(fieldList[i], None)
 	cursor.updateRow(row)
@@ -155,7 +155,7 @@ def estfmkCorrection(row,cursor):
 	propvalue = row.getValue("PROPCLASS")
 	estvalue = row.getValue("ESTFMKVALUE_DBL")
 	if estvalue is not None and propvalue is not None and (re.search('4', str(propvalue)) or re.search('5',str(propvalue))):
-		arcpy.AddMessage("propclass" + str(propvalue) )
+		#arcpy.AddMessage("propclass" + str(propvalue) )
 		row.setValue("ESTFMKVALUE_DBL",None)
 	cursor.updateRow(row)
 
@@ -238,7 +238,7 @@ for row in updateCursor:
 	rowCount += 1
 	calcStateid(row, updateCursor)
 	processSchoolDist(row,updateCursor,schoolDist_nameNo_dict,schoolDist_noName_dict)
-	calcImproved(row, updateCursor)
+	#calcImproved(row, updateCursor)
 	numValCast(row, updateCursor,string_field_list)
 	#Unusual AUXCLASS
 	cantThinkOfName(row,updateCursor,auxClassTable)
